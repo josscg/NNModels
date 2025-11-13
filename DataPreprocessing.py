@@ -119,54 +119,31 @@ def create_windows_rnn(X_df, y_df, window_size):
 
 
 def create_windows_dnn(X_df, y_df, window_size,
-                       use_moving_stats=True, aggregate=False):
+                       use_moving_stats=True):
     """
-    Create flattened windows for DNN input using selected features.
-
-    Parameters
-    ----------
-    X_df : pd.DataFrame
-        Full feature dataframe.
-    y_df : pd.Series
-        Target series (aligned with X_df).
-    window_size : int
-        Number of timesteps per window.
-    features : list[str]
-        List of column names from X_df to include as features.
-    use_moving_stats : bool, default=True
-        Whether to include moving average and volatility per feature window.
-    aggregate : bool, default=False
-        If True, average each feature over the window (aggregate features instead of flattening).
-
-    Returns
-    -------
+    Create 2D arrays for DNN input:
     X : np.ndarray, shape (samples, window_size * n_features + extras)
     y : np.ndarray, shape (samples, 1)
     """
     X_list, y_list = [], []
     
-    features, sin_cos_cols, _ = _identify_feature_types(X_df, None)
+    num_cols, sin_cos_cols, cat_cols = _identify_feature_types(X_df, None)
+    features = num_cols + cat_cols
 
     for i in range(len(X_df) - window_size):
         window = X_df[features].iloc[i:i+window_size].values
 
-        if aggregate:
-            # Aggregate across the window (mean per feature)
-            feat_summary = np.mean(window, axis=0)
-        else:
-            # Flatten all time steps (sequence unfolded)
-            feat_summary = window.flatten()
-
-        # Optionally add moving statistics
-        extras = []
         if use_moving_stats:
-            moving_avg = np.mean(window)
-            volatility = np.std(window)
-            extras.extend([moving_avg, volatility])
+            # Aggregate using mean and std per feature
+            feat_summary = np.hstack([np.mean(window, axis=0),
+                                      np.std(window, axis=0)])
+        else:
+            # Flatten all timesteps
+            feat_summary = window.flatten()
             
         time_features = X_df[sin_cos_cols].iloc[i + window_size - 1].values
 
-        X_list.append(np.hstack([feat_summary, extras, time_features]))
+        X_list.append(np.hstack([feat_summary, time_features]))
         y_list.append(y_df.iloc[i + window_size])
 
     return np.array(X_list), np.array(y_list).reshape(-1, 1)
