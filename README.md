@@ -19,7 +19,7 @@ The framework is organized around interchangeable model components, allowing the
 data pipelines and evaluation metrics to be used for both classical and quantum models.
 
 
-## Classical Machine Learning Models
+### Classical Machine Learning Models
 
 Implemented using **TensorFlow** and custom Python modules:
 
@@ -31,7 +31,7 @@ Implemented using **TensorFlow** and custom Python modules:
 
 These models are used as performance baselines and for direct comparison with quantum-enhanced approaches.
 
-## Quantum Machine Learning Models
+### Quantum Machine Learning Models
 
 Quantum models are implemented using **PennyLane** with TensorFlow integration:
 
