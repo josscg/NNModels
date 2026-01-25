@@ -26,10 +26,6 @@ Implemented using **TensorFlow** and custom Python modules:
 - Feedforward Neural Networks (NN)
 - Recurrent Neural Networks (RNN)
 - Reservoir Computing
-  - Echo State Networks
-  - Custom reservoir implementations
-
-These models are used as performance baselines and for direct comparison with quantum-enhanced approaches.
 
 ### Quantum Machine Learning Models
 
@@ -39,8 +35,5 @@ Quantum models are implemented using **PennyLane** with TensorFlow integration:
 - Quantum Recurrent Neural Networks (QRNN)
 - Quantum Reservoir Computing
 
-Quantum circuits are parameterized and trained using hybrid
-classical–quantum optimization loops.  
-Both simulated quantum backends and differentiable quantum nodes are supported.
 
 
