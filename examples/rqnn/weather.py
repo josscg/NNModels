@@ -95,30 +95,3 @@ plt.ylabel("Next day log return")
 plt.legend()
 plt.grid(True)
 plt.show()
-
-plt.figure(figsize=(12,6))
-plt.plot(datetime, data_df[target_col], label="Actual")
-plt.plot(datetime[window_size:window_size+len(y_pred_train_dnn.flatten())], 
-         y_pred_train_dnn.flatten(), label='Train Predictions', color='green')
-plt.plot(datetime[window_size+len(y_pred_train_dnn):window_size+len(y_pred_train_dnn)+len(y_pred_test_dnn.flatten())], 
-         y_pred_test_dnn.flatten(), label='Test Predictions', color='red')
-plt.title("HRQNN: True vs Predicted Values")
-plt.xlabel("Test sample index (day)")
-plt.ylabel("Next day log return")
-plt.legend()
-plt.grid(True)
-plt.show()
-
-plt.figure(figsize=(12,6))
-plt.plot(datetime[training_split+window_size:], 
-         data_df[target_col].iloc[training_split+window_size:], 
-         label="Actual", color="blue")
-plt.plot(datetime[training_split+window_size:], 
-         y_pred_test_dnn.flatten(), 
-         label="Test Predictions", color="red")
-plt.title("HRQNN Zoom: Test Predictions vs Actual")
-plt.xlabel("Date")
-plt.ylabel("Next day log return")
-plt.legend()
-plt.grid(True)
-plt.show()
