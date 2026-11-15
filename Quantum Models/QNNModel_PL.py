@@ -171,7 +171,7 @@ class QuantumLayer(tf.keras.layers.Layer):
     def build(self, input_shape):
         # Runtime-safe initialization
         self.dev = qml.device(
-            "default.qubit.tf",
+            "default.qubit",
             wires=self.n_qbits,
             shots=None
         )
