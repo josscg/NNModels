@@ -31,7 +31,7 @@ def _identify_feature_types(df, target_col):
 #  Preprocessing pipeline (fit/transform)
 # ----------------------------------------------------------
 
-def fit_transform_train(df_train, target_col, quantum=False):
+def fit_transform_train(df_train, target_col, quantum=False, encoding=None):
     """
     Fit scalers/encoders on training data and transform it (RNN version).
     Keeps sin/cos untouched, normalizes numeric columns, one-hot encodes categorical columns.
@@ -63,16 +63,26 @@ def fit_transform_train(df_train, target_col, quantum=False):
     X_processed = pd.concat([X_scaled, X_train[sin_cos_cols], X_cat], axis=1)
     
     # If quantum = True, multiply continuous features by 2π
-    if quantum:
+    if quantum and encoding is None:
         for col in num_cols:
             X_processed[col] = 2 * np.pi * X_processed[col]
             # sin/cos already in [-1, 1], we can leave them as is
             # categorical remain binary
 
+    # Paper encoding requires continuous features in [-1, 1]
+    if encoding == 'paper':
+        for col in num_cols:
+            X_processed[col] = 2 * X_processed[col] - 1
+    elif encoding not in (None, 'angle', 'classical'):
+        raise ValueError(f'Unknown encoding: {encoding}')
+    elif encoding == 'angle':
+        for col in num_cols:
+            X_processed[col] = 2 * np.pi * X_processed[col]
+
     return X_processed, y_train, scaler, encoder
 
 
-def transform_test(df_test, target_col, scaler, encoder, quantum=False):
+def transform_test(df_test, target_col, scaler, encoder, quantum=False, encoding=None):
     """Transform test data using pre-fitted scaler and encoder (RNN version)."""
     num_cols, sin_cos_cols, cat_cols = _identify_feature_types(df_test, target_col)
     X_test = df_test.drop(columns=[target_col])
@@ -92,11 +102,21 @@ def transform_test(df_test, target_col, scaler, encoder, quantum=False):
     X_processed = pd.concat([X_scaled, X_test[sin_cos_cols], X_cat], axis=1)
     
     # If quantum = True, multiply continuous features by 2π
-    if quantum:
+    if quantum and encoding is None:
         for col in num_cols:
             X_processed[col] = 2 * np.pi * X_processed[col]
             # sin/cos already in [-1, 1], we can leave them as is
             # categorical remain binary
+
+    # Apply the same encoding used for training
+    if encoding == 'paper':
+        for col in num_cols:
+            X_processed[col] = 2 * X_processed[col] - 1
+    elif encoding not in (None, 'angle', 'classical'):
+        raise ValueError(f'Unknown encoding: {encoding}')
+    elif encoding == 'angle':
+        for col in num_cols:
+            X_processed[col] = 2 * np.pi * X_processed[col]
     
     return X_processed, y_test
 
