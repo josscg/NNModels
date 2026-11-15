@@ -13,7 +13,7 @@ import tensorflow as tf
 import pennylane as qml
 import numpy as np
 from matplotlib import pyplot as plt
-from QNNModel_PL import ReadIn, Anzats
+from quantum_models.QNNModel_PL import ReadIn, Anzats
 
 
 class HiddenState:
@@ -60,7 +60,7 @@ class QRNNCell(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         self.dev = qml.device(
-            "default.qubit.tf",
+            "default.qubit",
             wires=self.n_qbits,
             shots=None)
         self.quantum_circuit = self._build_qnode()
