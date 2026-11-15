@@ -102,6 +102,51 @@ def transform_test(df_test, target_col, scaler, encoder, quantum=False):
 
 
 # ----------------------------------------------------------
+#  Target preprocessing (fit/transform)
+# ----------------------------------------------------------
+
+def fit_transform_target(y_train, feature_range=(-1, 1)):
+    """
+    Fit a scaler on training targets and transform them.
+    Returns the scaled targets and fitted scaler.
+    """
+    # Initialize target scaler
+    target_scaler = MinMaxScaler(feature_range=feature_range)
+
+    # Scale training targets
+    y_scaled = target_scaler.fit_transform(
+        np.asarray(y_train).reshape(-1, 1)
+    )
+    return y_scaled, target_scaler
+
+
+def transform_target(y_test, target_scaler):
+    """
+    Transform test targets using the pre-fitted target scaler.
+    """
+    y_scaled = target_scaler.transform(
+        np.asarray(y_test).reshape(-1, 1)
+    )
+    return y_scaled
+
+
+# ----------------------------------------------------------
+#  Target postprocessing (inverse transform)
+# ----------------------------------------------------------
+
+def inverse_transform_target(y_pred, target_scaler):
+    """
+    Convert model predictions back to the original target scale.
+    Uses the scaler fitted on training targets.
+    """
+    # Inverse scale predictions
+    y_original = target_scaler.inverse_transform(
+        np.asarray(y_pred).reshape(-1, 1)
+    )
+    return y_original
+
+
+# ----------------------------------------------------------
 #  Window creation
 # ----------------------------------------------------------
 
