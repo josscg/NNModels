@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 20 14:49:02 2025
-
-@author: lm10_
-"""
 import pandas as pd
 import numpy as np 
 from matplotlib import pyplot as plt
@@ -11,9 +5,6 @@ from matplotlib import pyplot as plt
 data_df = pd.read_csv(r"PRSA_Data_Aotizhongxin_20130301-20170228.csv")
 
 data_df['datetime'] = pd.to_datetime(data_df[['year', 'month', 'day', 'hour']])
-
-
-#%%
 
 # Apply sin/cos encoding for cyclic features
 data_df['hour_sin'] = np.sin(2 * np.pi * data_df['hour'] / 24)
@@ -31,70 +22,27 @@ datetime = data_df['datetime']
 
 data_df = data_df.drop(columns=['No', 'year', 'month', 'day', 'hour', 'station', 'datetime'])
 
-
-
-
-#%%
-
 training_split = int(0.8 * len(data_df))
 
 df_train, df_test = data_df[:training_split], data_df[training_split:]
 
-from DataPreprocessing import *
+from dataprocessing import *
 
 target_col = 'PM2.5'
+
 
 # Preprocess
 X_train, y_train, scaler, encoder = fit_transform_train(df_train, target_col, quantum=True)
 X_test, y_test = transform_test(df_test, target_col, scaler, encoder, quantum=True)
 
-
-#%%
-
 window_size = 5
-
-# # Create DNN windows
-# X_train_dnn, y_train_dnn = create_windows_dnn(X_train, y_train, window_size, use_moving_stats=True)
-# X_test_dnn, y_test_dnn = create_windows_dnn(X_test, y_test, window_size, use_moving_stats=True)
 
 # Create RNN windows
 X_train_rnn, y_train_rnn = create_windows_rnn(X_train, y_train, window_size)
 X_test_rnn, y_test_rnn = create_windows_rnn(X_test, y_test, window_size)
 
 
-#%%
-# from QNNModel_PL import *
-
-# num_features = X_train_dnn.shape[1]
-    
-# architecture = {
-#                 "pre_quantum": True,                    
-#                 "quantum": {
-#                             "read_in": {"two_features_per_qbit": False},
-#                             "anzats": "aspen"},
-#                 "post_quantum": True
-#                 }
-
-# qnn_model = QNNModel(num_features, architecture)
-
-# qnn_model.compile(
-#     optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-#     loss = "mse",
-#     metrics=['mae']
-# )
-
-# qnn_model.fit(X_train_dnn, y_train_dnn,
-#               epochs=10, batch_size=5, validation_split=0.2,
-#               shuffle=False)
-
-
-
-
-# y_pred_train_dnn = qnn_model.predict(X_train_dnn)
-# y_pred_test_dnn = qnn_model.predict(X_test_dnn)
-
-
-from QRNNModel import *
+from quantum_models.HQRNNModel import *
 
 architecture = {
     "pre_quantum": True,
@@ -109,19 +57,16 @@ qrnn_model = QRNNModel(X_train_rnn.shape[-1], architecture)
 
 qrnn_model.compile(optimizer = tf.keras.optimizers.Adam(learning_rate= 0.001),
                   loss = "mse", 
-                  metrics = ['mae'])
+                  metrics = ['mae']
+)
         
 qrnn_model.fit(X_train_rnn, y_train_rnn, 
               validation_split=0.2, epochs=10, batch_size=128, 
-              shuffle=False)
-
-qrnn_model._draw_circuit()
-#%%
+              shuffle=False
+)
 
 y_pred_train_rnn = qrnn_model.predict(X_train_rnn)
 y_pred_test_rnn = qrnn_model.predict(X_test_rnn)
-
-#%%
 
 "QRNN"
 plt.figure(figsize=(12,6))
@@ -151,20 +96,13 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-
-
-
-
-#%%
-
-
 plt.figure(figsize=(12,6))
 plt.plot(datetime, data_df[target_col], label="Actual")
 plt.plot(datetime[window_size:window_size+len(y_pred_train_dnn.flatten())], 
          y_pred_train_dnn.flatten(), label='Train Predictions', color='green')
 plt.plot(datetime[window_size+len(y_pred_train_dnn):window_size+len(y_pred_train_dnn)+len(y_pred_test_dnn.flatten())], 
          y_pred_test_dnn.flatten(), label='Test Predictions', color='red')
-plt.title("QNN: True vs Predicted Values")
+plt.title("HRQNN: True vs Predicted Values")
 plt.xlabel("Test sample index (day)")
 plt.ylabel("Next day log return")
 plt.legend()
@@ -178,10 +116,9 @@ plt.plot(datetime[training_split+window_size:],
 plt.plot(datetime[training_split+window_size:], 
          y_pred_test_dnn.flatten(), 
          label="Test Predictions", color="red")
-plt.title("QNN Zoom: Test Predictions vs Actual")
+plt.title("HRQNN Zoom: Test Predictions vs Actual")
 plt.xlabel("Date")
 plt.ylabel("Next day log return")
 plt.legend()
 plt.grid(True)
 plt.show()
-
