@@ -118,7 +118,7 @@ class Anzats():
             weight_idx = 0   # keep track of which weights are consumed
             while step < self.n_qbits:
                 for q in range(step - 1, self.n_qbits, step):
-                    qml.RZ(weights[weight_idx], wires=q)
+                    qml.RY(weights[weight_idx], wires=q)
                     weight_idx += 1
 
                 stride = 2 * step
