@@ -1,5 +1,5 @@
 from quantum_models.QNNModel_PL import *
-from DataPreprocessing import fit_transform_target, inverse_transform_target
+from dataprocessing import fit_transform_target, inverse_transform_target
 
 def create_sample_data():
     """Create sample regression data."""
