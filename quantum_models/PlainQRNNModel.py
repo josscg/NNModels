@@ -43,7 +43,7 @@ class HiddenState:
 
 class Anzats:
     """RX-RZ-RX rotations and ring ZZ entanglers, optionally with readout mixing."""
-    def __init__(self, n_qbits, anzats_arch, wires):
+    def __init__(self, n_qbits, anzats_arch, wires, data_wires=None, hidden_wires=None):
         self.n_qbits = n_qbits
         self.arch = anzats_arch
         self.wires = list(wires)
@@ -59,6 +59,28 @@ class Anzats:
             self.n_weights = 3 * n_qbits + len(self.pairs)
             if self.arch == 'paper_readout':
                 self.n_weights += n_qbits
+        elif self.arch == 'coupled_cb':
+            self.data_wires = list(data_wires) if data_wires is not None else []
+            self.hidden_wires = list(hidden_wires) if hidden_wires is not None else []
+            if not self.data_wires or len(self.data_wires) != len(self.hidden_wires):
+                raise ValueError('coupled_cb requires equal, nonempty data and hidden registers.')
+            if len(self.hidden_wires) < 2:
+                raise ValueError('coupled_cb requires at least two hidden qubits.')
+            if set(self.data_wires) & set(self.hidden_wires):
+                raise ValueError('Data and hidden wires must not overlap.')
+            if set(self.wires) != set(self.data_wires + self.hidden_wires):
+                raise ValueError('Data and hidden registers must cover all ansatz wires.')
+
+            self.data_hidden_pairs = list(zip(self.data_wires, self.hidden_wires))
+            self.hidden_hidden_pairs = [
+                (self.hidden_wires[i], self.hidden_wires[(i + 1) % len(self.hidden_wires)])
+                for i in range(len(self.hidden_wires))
+            ]
+            if len(self.hidden_wires) == 2:
+                self.hidden_hidden_pairs = self.hidden_hidden_pairs[:1]
+
+            self.n_weights = (4 * n_qbits + len(self.data_hidden_pairs)
+                              + len(self.hidden_hidden_pairs))
         elif isinstance(self.arch, list):
             self.n_weights = 0
             for layer in self.arch:
@@ -87,6 +109,27 @@ class Anzats:
                 for wire in self.wires:
                     qml.RY(weights[index], wires=wire)
                     index += 1
+        elif self.arch == 'coupled_cb':
+            for wire in self.wires:
+                qml.RX(weights[index], wires=wire)
+                qml.RZ(weights[index + 1], wires=wire)
+                qml.RX(weights[index + 2], wires=wire)
+                index += 3
+
+            for data_wire, hidden_wire in self.data_hidden_pairs:
+                qml.IsingZZ(weights[index], wires=[data_wire, hidden_wire])
+                index += 1
+
+            for hidden_a, hidden_b in self.hidden_hidden_pairs:
+                qml.IsingZZ(weights[index], wires=[hidden_a, hidden_b])
+                index += 1
+
+            for data_wire, hidden_wire in self.data_hidden_pairs:
+                qml.CNOT(wires=[hidden_wire, data_wire])
+
+            for wire in self.wires:
+                qml.RY(weights[index], wires=wire)
+                index += 1
         else:
             for layer in self.arch:
                 for gate, targets in layer.items():
@@ -115,7 +158,8 @@ class QuantumRecurrentBlock:
         self.read_in = ReadIn(n_feat, self.arch.get('read_in', {}), self.data_wires)
         self.hidden = HiddenState(self.arch.get('hidden_state', {}), self.hidden_wires)
         self.anzats = Anzats(self.n_qbits, self.arch.get('ansatz', 'paper'),
-                             self.data_wires + self.hidden_wires)
+                             self.data_wires + self.hidden_wires,
+                             data_wires=self.data_wires, hidden_wires=self.hidden_wires)
         self.n_weights = self.anzats.n_weights
 
     def circuit(self, inputs, weights):
@@ -212,24 +256,3 @@ class PlainQRNNModel(tf.keras.Model):
             return probabilities
         low, high = self.target_range
         return probabilities * (high - low) + low
-
-
-def make_forecasting_windows(series, n_steps=7, target_range=None):
-    """Build day-(t+1) targets from preceding n_steps scalar observations.
-
-    Fit the input range and target range using training data only. Pass the
-    same input scaling to validation/test data; do not refit on test data.
-    """
-    values = np.asarray(series, dtype=np.float64).reshape(-1)
-    if len(values) <= n_steps:
-        raise ValueError('Series must contain more than n_steps elements.')
-    if target_range is None:
-        low, high = float(values.min()), float(values.max())
-    else:
-        low, high = map(float, target_range)
-    if high <= low:
-        raise ValueError('Scaling range must have max > min.')
-    scaled = 2 * (values - low) / (high - low) - 1
-    X = np.stack([scaled[i:i + n_steps] for i in range(len(values) - n_steps)])
-    y = values[n_steps:]
-    return X[..., None], y[:, None], (low, high)
