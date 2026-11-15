@@ -7,7 +7,7 @@ Created on Tue Dec  2 15:52:19 2025
 
 # RESOURCES
 # chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://arxiv.org/pdf/2302.03244 
-
+# HYBRID ARCHITECTURE
 
 import tensorflow as tf
 import pennylane as qml
